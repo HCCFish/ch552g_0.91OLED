@@ -22,7 +22,8 @@
 #define SSD1306_NORMALDISPLAY 0xA6
 #define SSD1306_DISPLAYON 0xAF
 
-//Global Variables
+//Global Variables 
+//declare what char you need from header filer
 static uint16_t display_num[10][16] = display16X16_number_R;
 static uint16_t display_A[16] = display16X16_A_R;
 static uint16_t display_C[16] = display16X16_C_R;
@@ -120,7 +121,52 @@ void lightScreen() {
   }
 }
 
-//Print the current power information to the screen
+//Simple example for showing 
+//"0123467"
+//"89  ACV"
+void test_Screen(){
+  display_addr_list[0] = display_num[voltage_dec_0];
+  display_addr_list[1] = display_num[voltage_dec_1];
+  display_addr_list[2] = display_num[voltage_dec_2];
+  display_addr_list[3] = display_num[voltage_dec_3];
+  display_addr_list[4] = display_num[current_dec_4];
+  display_addr_list[5] = display_num[current_dec_5];
+  display_addr_list[6] = display_num[current_dec_6];
+  display_addr_list[7] = display_num[current_dec_7];
+  display_addr_list[8] = display_num[current_dec_8];
+  display_addr_list[9] = display_num[current_dec_9];
+  display_addr_list[10] = display_blank
+  display_addr_list[11] = display_blank
+  display_addr_list[12] = display_A
+  display_addr_list[13] = display_C
+  display_addr_list[14] = display_V
+  for (uint8_t i = 0; i < 8; i++) {
+    //Set editing page number
+    I2CStart();
+    I2CSend(OLED_I2C_ADDRESS << 1);  // I2C address + Write bit
+    I2CSend(0xB0 + i);               // Set page address
+    //I2CSend(0x00);      // Set lower column address
+    //I2CSend(0x10);      // Set higher column address
+    //Start sending page data
+    I2CRestart();
+    I2CSend(OLED_I2C_ADDRESS << 1);  // I2C address + Write bit
+    I2CSend(0x40);                   // Co = 0, D/C# = 1
+    uint8_t push_temp;
+    uint8_t readed_byte;
+    for (uint8_t j = 0; j < 128; j++) {
+        push_temp = 0;
+        readed_byte = display_addr_list[(j >> 4) + (i / 4 * 8)][j % 16] >> (i % 4 << 2);
+        push_temp |= ((readed_byte >> 3) & 0x01) << 7;
+        push_temp |= ((readed_byte >> 2) & 0x01) << 5;
+        push_temp |= ((readed_byte >> 1) & 0x01) << 3;
+        push_temp |= (readed_byte & 0x01) << 1;
+        I2CSend(push_temp);
+    }
+    I2CStop();
+  }
+}
+
+//Custom function example ##Print the current power information to the screen
 void PS_Screen(uint16_t voltage_num, uint16_t current_num, bool CC_mode) {
   voltage_dec_3 = (voltage_num / 1000) % 10;
   voltage_dec_2 = (voltage_num / 100) % 10;
@@ -163,7 +209,7 @@ void PS_Screen(uint16_t voltage_num, uint16_t current_num, bool CC_mode) {
     I2CSend(0x40);                   // Co = 0, D/C# = 1
     for (uint8_t j = 0; j < 128; j++) {
       if (i % 4 == 3 && (j == 79 || j == 80)) {
-        I2CSend(0xA0);
+        I2CSend(0xA0); // Show decimal point
       } else {
         push_temp = 0;
         readed_byte = display_addr_list[(j >> 4) + (i / 4 * 8)][j % 16] >> (i % 4 << 2);
